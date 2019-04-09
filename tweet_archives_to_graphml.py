@@ -5,7 +5,7 @@ import xml.etree.cElementTree as et
 
 class TwitterArchiveGrapher:
 
-    def __init__(self, name="Default Graph Name"):
+    def __init__(self, name):
         self.graph_name = name
         self.users = dict()
         self.tweets = dict()
@@ -196,12 +196,15 @@ def main():
     parser.add_argument("-o", "--output", dest='outfile',
                         default=None,
                         help="output graphml filename")
+    parser.add_argument("-g", "--graph-name", dest='graph_name',
+                        default="Default Graph Name",
+                        help="GraphML network name.")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument('infile_paths', nargs='+', metavar='INFILE')
 
     args = parser.parse_args()
 
-    tager = TwitterArchiveGrapher()
+    tager = TwitterArchiveGrapher(args.graph_name)
 
     for infile in args.infile_paths:
         tweets = [json.loads(t) for t in open(
