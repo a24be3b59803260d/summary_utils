@@ -9,11 +9,18 @@ class TwitterArchiveGrapher:
         self.graph_name = name
         self.users = dict()
         self.tweets = dict()
+        self.entities = dict()
+        self.entities['hashtags'] = set()
+        self.entities['symbols'] = set()
         self.edge_attr_keys = dict()
         self.node_attr_keys = dict()
 
         # add override values for attr types
+        self.edge_attr_keys['source'] = 'string'
+        self.edge_attr_keys['target'] = 'string'
         self.edge_attr_keys['entity_type'] = 'string'
+        self.edge_attr_keys['interaction'] = 'string'
+        self.edge_attr_keys['shared interaction'] = 'string'
         self.node_attr_keys['entity_type'] = 'string'
 
         pttgt = dict()
@@ -66,6 +73,8 @@ class TwitterArchiveGrapher:
         # TODO finish upsert
 
     def __tweet_to_node_and_edges(self, graph, tweet):
+        """ All nodes must be added before edges for Cytoscape
+        to correctly insert everything """
 
         # add tweet to graph first
         se = et.SubElement(
@@ -89,6 +98,8 @@ class TwitterArchiveGrapher:
 
         et.SubElement(se, 'data', key='entity_type').text = "tweeted"
 
+        et.SubElement(se, 'data', key='interaction').text = "tweet"
+
         # add retweet edge
         if 'retweeted_user_id' in tweet:
 
@@ -99,6 +110,48 @@ class TwitterArchiveGrapher:
                 target="tweet_id:%s" % tweet['retweeted_tweet_id'])
 
             et.SubElement(rtse, 'data', key='entity_type').text = "retweet"
+
+            et.SubElement(rtse, 'data', key='interaction').text = "retweet"
+
+        # add urls, symbols, and hashtags to and edge(s)
+
+        # hashtags
+        for e in tweet['entities']['hashtags']:
+
+            ese = et.SubElement(
+                graph, "edge",
+                source="tweet_id:%s" % tweet['id_str'],
+                target="hashtag:%s" % e['text'])
+
+            et.SubElement(
+                ese, 'data',
+                key='entity_type').text = "used_hashtag"
+
+            et.SubElement(
+                ese, 'data',
+                key='interaction').text = "used_hashtag"
+
+        # symbols
+        for e in tweet['entities']['symbols']:
+
+            ese = et.SubElement(
+                graph, "edge",
+                source="tweet_id:%s" % tweet['id_str'],
+                target="symbol:%s" % e['text'])
+
+            et.SubElement(
+                ese, 'data',
+                key='entity_type').text = "used_symbol"
+
+            et.SubElement(
+                ese, 'data',
+                key='interaction').text = "used_symbol"
+
+        # TODO handle user mentions
+        # user_mentions
+
+        # TODO hand URL nodes and edges
+        # urls
 
     # extract user(s) from tweet and add them to user dict
     def add_tweets(self, tweets):
@@ -116,10 +169,6 @@ class TwitterArchiveGrapher:
                 self.upsert_tweet(
                     retweet
                 )
-            """
-            else:
-                tweet['retweeted_user_id'] = 'null'
-            """
 
             tweet['user_id'] = tweet['user']['id_str']
             self.upsert_user(
@@ -175,6 +224,33 @@ class TwitterArchiveGrapher:
                     se, 'data',
                     key=k
                 ).text = str(user[k])
+
+        # hashtag and symbol nodes
+        for tweet_id in self.tweets:
+            # self.entities['hashtags'].add(e['text'])
+            tweet = self.tweets[tweet_id]
+            hashtags = [x['text'] for x in tweet['entities']['hashtags']]
+            symbols = [x['text'] for x in tweet['entities']['symbols']]
+            self.entities['hashtags'].update(hashtags)
+            self.entities['symbols'].update(symbols)
+
+        # hashtags
+        for ht in self.entities['hashtags']:
+            se = et.SubElement(
+                graph, "node",
+                id="hashtag:%s" % ht)
+            et.SubElement(se, 'data', key='entity_type').text = "hashtag"
+
+        # symbols
+        for s in self.entities['symbols']:
+            se = et.SubElement(
+                graph, "node",
+                id="symbol:%s" % s)
+            et.SubElement(se, 'data', key='entity_type').text = "symbol"
+
+        # TODO urls
+
+        # TODO mentions
 
         # tweet nodes and edges
         for tweet_id in self.tweets:
