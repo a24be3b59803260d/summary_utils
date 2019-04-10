@@ -158,26 +158,30 @@ class TwitterArchiveGrapher:
 
         # extract user, retweeted user, and tweet info
         for tweet in tweets:
-            # if retweeted
-            if "retweeted_status" in tweet:
-                retweet = tweet.pop('retweeted_status')
-                tweet['retweeted_tweet_id'] = retweet['id_str']
-                retweet['user_id'] = retweet['user']['id_str']
-                tweet['retweeted_user_id'] = retweet['user_id']
+
+            # ignore rate limit tweets
+            if 'limit' not in tweet:
+
+                # if retweeted
+                if "retweeted_status" in tweet:
+                    retweet = tweet.pop('retweeted_status')
+                    tweet['retweeted_tweet_id'] = retweet['id_str']
+                    retweet['user_id'] = retweet['user']['id_str']
+                    tweet['retweeted_user_id'] = retweet['user_id']
+                    self.upsert_user(
+                        retweet.pop('user', None))
+                    self.upsert_tweet(
+                        retweet
+                    )
+
+                tweet['user_id'] = tweet['user']['id_str']
                 self.upsert_user(
-                    retweet.pop('user', None))
-                self.upsert_tweet(
-                    retweet
+                    tweet.pop('user', None)
                 )
 
-            tweet['user_id'] = tweet['user']['id_str']
-            self.upsert_user(
-                tweet.pop('user', None)
-            )
-
-            self.upsert_tweet(
-                tweet
-            )
+                self.upsert_tweet(
+                    tweet
+                )
 
     # convert stored tweets to graphml format
     def to_graphml(self):
