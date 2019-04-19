@@ -111,9 +111,6 @@ class TwitterArchiveGrapher:
         # add direct tweet edge
         se = et.SubElement(
             graph, "edge",
-            id="user_id:%s-tweet_id:%s" % (
-                tweet["user_id"],
-                tweet["id_str"]),
             source="user_id:%s" % tweet['user_id'],
             target="tweet_id:%s" % tweet['id_str'])
 
@@ -126,9 +123,6 @@ class TwitterArchiveGrapher:
 
             rtse = et.SubElement(
                 graph, "edge",
-                id="tweet_id:%s-tweet_id:%s" % (
-                    tweet["id_str"],
-                    tweet["retweeted_tweet_id"]),
                 source="tweet_id:%s" % tweet['id_str'],
                 target="tweet_id:%s" % tweet['retweeted_tweet_id'])
 
